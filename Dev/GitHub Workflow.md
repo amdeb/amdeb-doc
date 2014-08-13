@@ -138,7 +138,7 @@ The commit message has a pattern of the "Fixes#123 and closes#456" syntax.
     # ToDo: need to add "Fixes#123" in commit message
     git merge --squash my-feature-123
     
-    # Sync the shared master with our changes
+    # Sync the shared master with topic branch changes
     git push origin 
     
     # Delete the local branch
