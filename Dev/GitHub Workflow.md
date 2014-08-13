@@ -148,8 +148,8 @@ The commit message has a pattern of the "Fixes #123 and closes #456" syntax.
     # Merge the changes of topic branch to master
     git merge --squash my-feature-123
     
-    # Commit changes and add "Fixes#123" in commit message
-    git commit -am 'add feature. Fixes#123'
+    # Commit changes and add "Fixes #123" in commit message
+    git commit -am 'add feature. Fixes #123'
     
     # Sync the shared master with topic branch changes
     git push origin 
