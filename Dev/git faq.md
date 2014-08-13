@@ -14,10 +14,7 @@ Git credential helper can save your credentials into memory.
 To cache username and password for 10 hours, use the below command:
 
     # for ubuntu, change wincred to cache
-    # if you set it wrong, you need to unset it first
-    # using command git config --globle --unset credential.helper
-    
     git config --global credential.helper wincred
-    git config credential.helper 'cache --timeout=36000' 
+    git config credential.helper 'wincred --timeout=36000' 
     
  
