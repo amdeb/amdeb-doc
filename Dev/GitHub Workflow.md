@@ -114,7 +114,17 @@ After a pull request is create, all developers are welcome
 to discuss and review it. One can even comment on changes at source code lines 
 and contribute changes to the topic branch. 
 
-#### 6. Merge after pull request is reviewed ####
+#### 6. Collaborate on a topic branch ####
+
+When more than one developers work on the same topic branch, 
+one needs to sync with the shared repository frequently. 
+The git commands are 
+
+    git checkout my-feature-123
+    git fetch origin/my-feature-123
+    git merge origin/workflow-doc-1
+
+#### 7. Merge after pull request is reviewed ####
 
 The philosophy is one commit per feature. Once all your commits of 
 a branch are happily reviewed, you start to merge the changes back 
