@@ -27,17 +27,19 @@ The workflow is used by a small team with no more than 10 developers.
 The basic requirements are
 
 * It should be as simple as possible, but not simpler.
+* All developers have all rights to all source code.
 * Development starts with a feature request or issue report.
 * It supports code review.
-* Check-in is linked to a feature/issue to make it traceable.  
-
-It turned out that Scott Chacon's [GitHub Flow](http://scottchacon.com/2011/08/31/github-flow.html) 
-is a good one that meets all above requirements. 
+* Check-in is linked to a feature/issue to make it traceable.   
  
 ###GitHub Flow###
 ---
 
-Below is a copy from [GitHub Flow](http://scottchacon.com/2011/08/31/github-flow.html)
+It turned out that Scott Chacon's [GitHub Flow](http://scottchacon.com/2011/08/31/github-flow.html) 
+is a good one that meets all above requirements. It uses a Shared Repository Model. 
+All developers share a single master branch and many topic branches. They use
+pull request to review, discuss and contribute changes. 
+Below are detail steps copied from the Scott's article: 
 
 > * Anything in the master branch is deployable
 > * To work on something new, create a descriptively named branch off of master (ie: new-oauth2-scopes)
@@ -51,7 +53,7 @@ Below is a copy from [GitHub Flow](http://scottchacon.com/2011/08/31/github-flow
 
 Based on the above GitHub Flow, below are the detail flow used in Amdeb. 
 
-#### 1. One stable deployable master branch####
+#### 1. Share one stable deployable master branch####
 
 There is only one master branch that is stable and ready to deploy. 
 
@@ -66,37 +68,50 @@ It can be assigned to a developer. There is a good article titled
 
 When an issue is assigned to a developer, the developer creates a descriptive branch 
 from the stable master branch. The branch name should be a descriptive one reflecting 
-a task to be done. In master branch, 
-    
-    git checkout -b my-feature-123 
+a task to be done. This kind of branch is called a topic branch. 
+Suppose the shared remote repository is origin. 
+
+    # Sync local repository with the shared master branch 
+    git fetch origin            
+     
+    # create a branch for an issue
+    git checkout -b my-feature-123 origin/master
+     
+    # push the newly create branch to shared repository
     git push origin my-feature-123
 
-The first command create a branch and the second command push the branch to the shared repository 
+The first command create a topic branch named my-feature-123 
+and the second command push the branch to the shared repository 
 thus every developer can see it. 
 
 #### 4. Work on a branch for an issue and push to the named branch constantly ###
 
-The developer should commit as often as he/she likes and push changes of the branch to GitHub. 
+The developer should commit as often as he/she likes and 
+push changes of the topic branch to GitHub. 
   
     git commit -a -m "add a new feature" 
     git push origin my-feature-123
 
-There two reasons that we push to a named branch on the server constantly. 
+There are two reasons that we push to the topic branch on the server constantly. 
 First, our work is always backed up in GitHub. Second, a simple `git fetch` gives 
 a list of tasks being worked on. 
 
-#### 5. Open a pull request for an issue ####
+#### 5. Create a pull request for an issue ####
 
 When the code is completed and passed all tests, you can open a pull request 
-for its branch. Actually you don't have to wait for code completion to 
+for the topic branch. Actually you don't have to wait for code completion to 
 create a pull request. Whenever you want to discuss the task, you can create 
 a pull request that is used as a branch conversation view.  
 
 The article [How we use PUll Request to Build GitHub]
 (https://github.com/blog/1124-how-we-use-pull-requests-to-build-github)
-suggests open a pull request as early as possible and
- a pull request doesn't have to be merged. It is a great way to get feedback and 
- track progress on a branch. 
+suggests open a pull request as early as possible and 
+a pull request doesn't have to be merged. It is a great way to get 
+feedback and track progress on a branch.
+ 
+After a pull request is create, all developers are welcome 
+to discuss and review it. One can even comment on changes at source code lines 
+and contribute changes to the topic branch. 
 
 #### 6. Merge after pull request is reviewed ####
 
@@ -107,21 +122,29 @@ to master by squashing all commits related to a single issue.
 Please do NOT use GitHub's "Merge pull request" button to merge your changes.
 You should merge locally first, test the merge, then push to the remote master branch. 
 
-Assume the remote master branch is called origin (the default name). 
-
-    # TODO: need to verify the following commands 
-    git fetch origin
+When commit all changes, please provide information of the solved issue number 
+thus GitHub can close the issue automatically. 
+The commit message has a pattern of the "Fixes#123 and closes#456" syntax. 
+    
+    # Go to local master
     git checkout master
+        
+    # Sync local with origin. Because we never change master
+    # this should be a fast forward if there are any changes
+    git pull origin master
     
-    # the following is required if you are out of sync with the master
-    # otherwise, no need to rebase
-    git rebase master my-feature-123  
-    
+    # Merge the changes of topic branch to master
     git merge --squash my-feature-123
-    git commit
     
-    git branch -D my-feature-123
+    # Sync the shared master with our changes
     git push origin 
+    
+    # Delete the local branch
+    git branch -d my-feature-123
+    
+    # Delete remote branch in the shared repository
+    git push origin --delete my-feature-123
+     
     
     
      
