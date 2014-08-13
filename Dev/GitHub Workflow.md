@@ -120,7 +120,8 @@ The philosophy is one commit per feature. Once all your commits of
 a branch are happily reviewed, you start to merge the changes back 
 to master by squashing all commits related to a single issue. 
 
-Please do NOT use GitHub's "Merge pull request" button to merge your changes.
+Unless it is a trivial change, please do NOT use GitHub's 
+"Merge pull request" button to merge your changes.
 You should merge locally first, test the merge, then push to the remote master branch. 
 
 When commit all changes, please provide information of the solved issue number 
