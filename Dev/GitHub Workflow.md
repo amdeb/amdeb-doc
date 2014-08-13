@@ -136,7 +136,7 @@ You should merge locally first, test the merge, then push to the remote master b
 
 When commit all changes, please provide information of the solved issue number 
 thus GitHub can close the issue automatically. 
-The commit message has a pattern of the "Fixes#123 and closes#456" syntax. 
+The commit message has a pattern of the "Fixes #123 and closes #456" syntax. 
     
     # Go to local master
     git checkout master
@@ -146,8 +146,10 @@ The commit message has a pattern of the "Fixes#123 and closes#456" syntax.
     git pull origin master
     
     # Merge the changes of topic branch to master
-    # ToDo: need to add "Fixes#123" in commit message
     git merge --squash my-feature-123
+    
+    # Commit changes and add "Fixes#123" in commit message
+    git commit -am 'add feature. Fixes#123'
     
     # Sync the shared master with topic branch changes
     git push origin 
