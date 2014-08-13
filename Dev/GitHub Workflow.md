@@ -66,9 +66,9 @@ It can be assigned to a developer. There is a good article titled
 
 When an issue is assigned to a developer, the developer creates a descriptive branch 
 from the stable master branch. The branch name should be a descriptive one reflecting 
-a task to be done.  
+a task to be done. In master branch, 
     
-    git checkout -b my-feature-123 master
+    git checkout -b my-feature-123 
     git push origin my-feature-123
 
 The first command create a branch and the second command push the branch to the shared repository 
@@ -101,10 +101,31 @@ suggests open a pull request as early as possible and
 #### 6. Merge after pull request is reviewed ####
 
 The philosophy is one commit per feature. Once all your commits of 
-a branch are tested and happily reviewed, you start to merge the changes back 
-to master. 
+a branch are happily reviewed, you start to merge the changes back 
+to master by squashing all commits related to a single issue. 
 
-You use GitHub's "Merge pull request" button to merge your changes. 
+Please do NOT use GitHub's "Merge pull request" button to merge your changes.
+You should merge locally first, test the merge, then push to the remote master branch. 
+
+Assume the remote master branch is called origin (the default name). 
+
+    # TODO: need to verify the following commands 
+    git fetch origin
+    git checkout master
+    
+    # the following is required if you are out of sync with the master
+    # otherwise, no need to rebase
+    git rebase master my-feature-123  
+    
+    git merge --squash my-feature-123
+    git commit
+    
+    git branch -D my-feature-123
+    git push origin 
+    
+    
+     
+
 
 
 
