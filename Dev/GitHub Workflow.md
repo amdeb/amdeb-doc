@@ -114,13 +114,24 @@ After a pull request is create, all developers are welcome
 to discuss and review it. One can even comment on changes at source code lines 
 and contribute changes to the topic branch. 
 
-#### 6. Merge after pull request is reviewed ####
+#### 6. Collaborate on a topic branch ####
+
+When more than one developers work on the same topic branch, 
+one needs to sync with the shared repository frequently. 
+The git commands are 
+
+    git checkout my-feature-123
+    git fetch origin/my-feature-123
+    git merge origin/workflow-doc-1
+
+#### 7. Merge after pull request is reviewed ####
 
 The philosophy is one commit per feature. Once all your commits of 
 a branch are happily reviewed, you start to merge the changes back 
 to master by squashing all commits related to a single issue. 
 
-Please do NOT use GitHub's "Merge pull request" button to merge your changes.
+Unless it is a trivial change, please do NOT use GitHub's 
+"Merge pull request" button to merge your changes.
 You should merge locally first, test the merge, then push to the remote master branch. 
 
 When commit all changes, please provide information of the solved issue number 
@@ -138,7 +149,7 @@ The commit message has a pattern of the "Fixes#123 and closes#456" syntax.
     # ToDo: need to add "Fixes#123" in commit message
     git merge --squash my-feature-123
     
-    # Sync the shared master with our changes
+    # Sync the shared master with topic branch changes
     git push origin 
     
     # Delete the local branch
