@@ -155,9 +155,10 @@ The commit message has a pattern of the "Fixes #123 and closes #456" syntax.
     git push origin 
     
     # Delete the local branch
-    git branch -d my-feature-123
+    git branch -D my-feature-123
     
     # Delete remote branch in the shared repository
+    # This also closes the pull request
     git push origin --delete my-feature-123
      
     
