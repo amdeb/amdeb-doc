@@ -55,12 +55,13 @@ Based on the above GitHub Flow, below are the detail flow used in Amdeb.
 
 #### 1. Share one stable deployable master branch####
 
-There is only one master branch that is stable and ready to deploy. 
+There is only one master branch in a shared repository that is stable and ready to deploy. 
+Everyone should clone and sync with this shared repository.  
 
 #### 2. Create an issue for each task #### 
 
 All development activity starts with an issue creation. An issue is a task that could be a bug or a new feature 
-that should not be too big. We may use labels to categorize  a feature/issue. 
+that should not be too big. We may use labels to categorize a feature/issue. 
 It can be assigned to a developer. There is a good article titled 
 ["Mastering Issues"] (https://guides.github.com/features/issues/).
 
@@ -134,6 +135,7 @@ The commit message has a pattern of the "Fixes#123 and closes#456" syntax.
     git pull origin master
     
     # Merge the changes of topic branch to master
+    # ToDo: need to add "Fixes#123" in commit message
     git merge --squash my-feature-123
     
     # Sync the shared master with our changes
