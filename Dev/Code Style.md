@@ -32,9 +32,10 @@ code styles.
 ##Code Style Check##
 ---
 
-In addition to code review, an automatic code style checking tool 
-such as [Pylint] (http://www.pylint.org/) is recommended to be used to 
-enforce standard code style. 
+In addition to code review, an automatic code style checking tool. 
+[Pylint] (http://www.pylint.org/) is recommended to be used to 
+enforce standard code style. Every code file **MUST** pass Pylint check 
+before it is checked in. 
 
 ##Code Document##
 ---
