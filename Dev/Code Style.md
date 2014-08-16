@@ -3,8 +3,8 @@
 One important design goal of the Python programming language is readability. 
 The coding motto is: 
 
-> Anyone can write code a computer can understand,
-but professional developers write code humans can understand.
+> Programs must be written for people to read, and only incidentally for machines to execute. 
+-H. Abelson and G. Sussman (SICP).
 
 When in doubt, always put **maintainability** as your top priority. 
 The code style in this document is based on the following resources. 
