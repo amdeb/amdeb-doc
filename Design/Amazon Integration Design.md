@@ -119,8 +119,32 @@ The configuration UI allows a user to configure Amazon API user
 account and integration parameters. The integration UI allows 
 manual operation and check integration status.  
 
- 
+1. Configuration UI
 
-
-
+    The configuration UI has the following fields to configure 
+    integration parameters: 
     
+    * Marketplace ID: the Amazon marketplace ID
+    * Merchant ID: merchant ID of the company
+    * Access Key: merchant access key
+    * Secret Key: merchant secret key
+    * Test connection: a button to test the above authentication parameters
+    
+    * Integration interval (seconds): default is 60 seconds
+    * Enable automatic integration: a checkbox to enable/disable automatic
+    integration.
+    
+2. Integration UI
+
+    The integration UI shows the integration status. It has a product tab
+    and an order tab to allow a user to check all integration results. 
+    
+    Additionally, it has two buttons to start manual integration: 
+    
+    * Manual product synchronization: a button to synchronize all products.
+    * Manual order status synchronization: a button to synchronize 
+     all orders in the past three months
+
+    If a integration request reports any errors, the error data are saved 
+    in database. Users in the integration user group will be notified 
+    using Odoo messages. 
