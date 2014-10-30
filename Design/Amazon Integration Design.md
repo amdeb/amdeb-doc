@@ -54,7 +54,8 @@ Amazon-specific part.
 
 ## The Odoo Integration Part
 
-This part intercepts relevant Odoo events and post those events into several
+An integration module (called an integrator) intercepts relevant 
+Odoo events and post those events into several
 integration tables that to be consumed by site-specific integration module. 
 For the Amazon integration, we need to intercept the following events:
 
@@ -95,6 +96,42 @@ an integration module.
 It is up to each site integration module to synchronize synchronize the 
 integration table data with a another site. The site-specific 
 synchronization status and results are store in site-specific tables. 
+
+### Odoo Event
+
+An integrator intercepts relevant Odoo calls such as product creation
+and uses an event object to notify subscribers of the event.
+ 
+An event object supports the following operations:
+
+* subscribe(model_name, subscriber): subscribe a subscriber for a model.
+* unsubscribe(model_name, subscriber): unsubscribe a subscriber for a model.
+* has_subscriber(model_name): whether there is at least one subscriber for
+a model.
+* fire(model_name, *args, **kwargs): fire an event that notifies its 
+subscribers. 
+
+There are three pre-defined event objects for three types of model
+operations:
+ 
+* record_write_event: an event object for record write operation.
+* record_update_event: an event object for record update operation.
+* record_unlink_event: an event object for record unlink operation. 
+
+A subscriber subscribes an event using one of two methods as 
+showing in the following code: 
+
+```python
+record_write_event = Event()
+
+# subscribe using class method
+record_write_event.subscribe('product.product', subscriber)
+
+# subscribe using decorator 
+@record_write_event('product.product')
+def subscriber(product_id):
+    pass
+```
 
 ## Amazon Integration
  
