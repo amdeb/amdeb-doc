@@ -70,13 +70,13 @@ When an event occurs, the integration module creates a record in
 an integration table. There are two tables: a product integration table and 
 an order integration table. Each table has the following columns:
 
-* product_id or order_id
-* operation: product-specific operation (create, update, unlink) or
+* the record id of the product or order table
+* record_operation: product-specific operation (create, write, unlink) or
 order-specific operations(confirmation, cancellation, shipped, etc).
-* values: operation data. For creation and unlink, it is product_id or order_id. 
-For updates, it's a list of new values.  
-* time_stamp: time stamp of the operation
-* site_id: the integration site id. If this column is None, the 
+* operation_data: operation data. For creation and unlink, it is product_id 
+or order_id. For write, it's a list of new values.  
+* operation_timestamp: time stamp of the operation
+* site_name: the integration site name. If this column is None, the 
 record is for all integration sites. Otherwise, it is a site-specific 
 record. The column is used in manual mode that a user starts a data 
 synchronization with one or more remote sites. 
@@ -97,41 +97,11 @@ It is up to each site integration module to synchronize synchronize the
 integration table data with a another site. The site-specific 
 synchronization status and results are store in site-specific tables. 
 
-### Odoo Event
+### Intercept Changes
 
 An integrator intercepts relevant Odoo calls such as product creation
-and uses an event object to notify subscribers of the event.
- 
-An event object supports the following operations:
+and creates a record in operation table.
 
-* subscribe(model_name, subscriber): subscribe a subscriber for a model.
-* unsubscribe(model_name, subscriber): unsubscribe a subscriber for a model.
-* has_subscriber(model_name): whether there is at least one subscriber for
-a model.
-* fire(model_name, *args, **kwargs): fire an event that notifies its 
-subscribers. 
-
-There are three pre-defined event objects for three types of model
-operations:
- 
-* record_write_event: an event object for record write operation.
-* record_update_event: an event object for record update operation.
-* record_unlink_event: an event object for record unlink operation. 
-
-A subscriber subscribes an event using one of two methods as 
-showing in the following code: 
-
-```python
-record_write_event = Event()
-
-# subscribe using class method
-record_write_event.subscribe('product.product', subscriber)
-
-# subscribe using decorator 
-@record_write_event('product.product')
-def subscriber(product_id):
-    pass
-```
 
 ## Amazon Integration
  
