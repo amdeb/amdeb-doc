@@ -1,8 +1,7 @@
 # Odoo Amazon Integration Design
 
-## Requirements
-
-Odoo Amazon Integration should support the following functions:
+## Integration Requirements
+Odoo Amazon Integration supports the following functions:
 
 * Catalog Synchronization
     - Product feed: Upload newly created or updated product data. 
@@ -41,129 +40,139 @@ an Odoo user can request a synchronization at any time.
 Following are several manual synchronization examples:
 
 * Upload all catalog data to Amazon
-* Download last two month's order data
+* Download the last two month's order data
 * Upload this month's shipping data
 
 Authorized Odoo users should be able to check the synchronization logs and 
-should be notified when there is any error. 
+should be notified when there is any error.
 
+## Amazon Integration UI
+There is an Amazon configuration UI and an Amazon integration UI.
+The Amazon configuration UI allows a user to configure Amazon API user 
+account and integration parameters. The Amazon integration UI allows 
+manual synchronization and checking integration status.  
+
+### 1. Configuration UI
+
+The Amazon configuration UI has the following fields to configure 
+integration parameters: 
+
+* Merchant ID: the Amazon merchant ID 
+* Access Key: merchant access key
+* Secret Key: merchant secret key
+
+* Integration interval (seconds): default is 10 minutes
+* Active flag: a checkbox to enable/disable automatic integration.
+    
+### 2. Integration UI
+
+The integration UI shows the integration/synchronization status. 
+It has a product tab and an order tab to allow a user to check all 
+integration results. 
+
+Additionally, it has two buttons to start manual integration: 
+
+* Synchronize all products: a button to synchronize all product data.
+* Synchronize all orders: a button to synchronize all orders
+in the past three months. 
+
+The two buttons are enabled only when automatic integration active 
+flag is disabled. 
+
+If an integration request reports any errors, the error data are saved 
+in database. Users in the integration user group will be notified 
+using Odoo messages.
+
+## Data Synchronization
 Amazon integration is one of many possible integrations for Odoo
-e-commerce. The integration has two parts: a common 
-integration part that is shared by all possible integrations and an 
-Amazon-specific part. 
-
-## The Odoo Integration Part
-
-An integration module (called an integrator) intercepts relevant 
-Odoo events and post those events into several
-integration tables that to be consumed by site-specific integration module. 
-For the Amazon integration, we need to intercept the following events:
-
-* Product creation
-* Product update
-* Product unlink (deletion)
-* Order shipment status change and tracking number
-* Order cancellation
-* Order refund
-
-When an event occurs, the integration module creates a record in 
-an integration table. There are two tables: a product integration table and 
-an order integration table. Each table has the following columns:
-
-* the record id of the product or order table
-* record_operation: product-specific operation (create, write, unlink) or
-order-specific operations(confirmation, cancellation, shipped, etc).
-* operation_data: operation data. For creation and unlink, it is product_id 
-or order_id. For write, it's a list of new values.  
-* operation_timestamp: time stamp of the operation
-* site_name: the integration site name. If this column is None, the 
-record is for all integration sites. Otherwise, it is a site-specific 
-record. The column is used in manual mode that a user starts a data 
-synchronization with one or more remote sites. 
-
-In automatic synchronization mode, a record is created when an event is 
-intercepted. In manual mode, records in the integration tables are created 
-in a batch mode. For example, if a manual product data synchronization 
-is request, we will create a set of all existing product creation 
-records. It is a user's responsibility to manually delete all 
-catalog data in Amazon seller center.  
-
-Therefore the difference between the automatic mode and the manual mode 
-is who creates the integration table records. In automatic mode, they
-are created by event interception. In manual mode, they are created by
-an integration module.
+e-commerce. In automatic mode, it reads product and order operations
+from tables created by Amdeb integrator and synchronizes data
+between Odoo and Amazon.
  
-It is up to each site integration module to synchronize synchronize the 
-integration table data with a another site. The site-specific 
-synchronization status and results are store in site-specific tables. 
+### Operation synchronization status
+For Odoo operation table, we need to add a field to record the
+synchronization status. There are two choices for this field:
 
-### Intercept Changes
-
-An integrator intercepts relevant Odoo calls such as product creation
-and creates a record in operation table.
-
-
-## Amazon Integration
+* Option 1: we use this field to display Amazon synchronization 
+status and an Odoo user can check this field to decide what to 
+do to fix a problem if the synchronization for an operation fails.
+This decision also means a one-to-one mapping from an Odoo operation 
+to an Amazon synchronization request. This option two issues: 
+First it requires one-to-one mapping from an Odoo operation to a
+synchronization operation that might be impossible or less efficient. 
+Second, if one of multiple updates of the same record fails, it is
+hard to tell if it needs a fix because another update in the same
+batch may fix the error. For example, setting a price to 
+an invalid value then correcting it quickly will generate 
+two updates and the first one will fail and the second one
+will succeed.
+* Option 2: we use this field as a flag to indicate whether 
+this operation is processed by synchronization process or not.
+The actual synchronization status of a record operation is 
+stored in another synchronization result table. This allows
+us to combine multiple operations into a single synchronization 
+record. For example, a creation operation followed by several
+updates can be combined into a single creation operation 
+synchronization. All operations of a record followed by 
+an unlink operation of the same record can be merged into a single 
+unlink operation. This also allows us to report record-level
+synchronization status because all operations of a record can 
+be combined into a single synchronization request. If something
+wrong, it can be retried in the next synchronization process. 
  
-### Amazon Integration Table
-Amazon integration module, like any other integration module, will 
-add an amazon_status column, an amazon_status_data and an 
-amazon_status_timestamp to the product_integration table 
-and the order_integration table.
-The amazon_status column shows the current status of the integration
-result. It could be one of the following enumeration values:
+We decide to use option 2. An amazon_status_time_stamp column 
+is added to each operation table to indicate whether an 
+operation is synchronized or not. 
 
-* None: the integration record is just created. 
-* Submitted: the integration request is submitted to Amazon
-* Pending: the integration request is pending in Amazon
-* Success: the integration request is processed successfully
-* Error: there is an error for this record.
+### Operation merge
+Following are possible operation combinations of a record: 
 
-The amazon_status_data column contains the Amazon call result returned from 
-synchronization request. 
+1. Any operation followed by an unlink operation: ignore everything
+exception the unlink operation. 
+2. A creation operation following by some write operations: ignore
+all write operations. 
+3. Multiple write operations: merge all write operation ordered by
+their timestamp into a single write operation. 
 
-The amazon_status_time_stamp column contains the time stamp of the current 
-status update. 
+In a single synchronization process, for each record, there can be 
+only one operation after merging. The synchronization process
+saves integration results in an Amazon integration table. 
+The next time the synchronization process runs, 
+it merges unprocessed records in operation table with failed records in
+the integration table and re-try the operation again. 
+The merge between operation table records and the failed integration
+records allows a user to fix update operation efficiently. 
 
-### Amazon Data Table
+## Amazon Integration Table
+### Product Integration Table
+Because there are Amazon-specific attributes for either product_template
+or product_product tables, we create two tables that inherit from these
+two Odoo tables with additional fields.
 
-Amazon integration module may add some columns to Odoo product or 
-order table to store some Amazon-specific data such as 
-Amazon product ASIN number, Amazon Order Id etc. 
+All amazon-related field names have a prefix of `amazon-`.
+These attribute will will be displayed in an `Amaozn` tab in 
+`product_template` and `product_product` tables. 
+
+Among these attributes, there is a `amazon_sync_active` flag showing
+weather to synchronize this record to Amazon or not.
+The default value is `True`. Changing this value to `False` 
+then to `True` will generate an `crate` operation. 
+
+### Product Synchronization Table
+For the synchronization operation, there are some sync-related fields 
+added to each record: 
+* `model_name`: the `product_template` or `product_product` table.
+* `record_id`: the record id of the table.
+* `sync_timestamp`: the time stamp of the last synchronization.
+* `sync_type`: creation, write or unlink. 
+* `sync_values`: the combined value in write and unlink synchronization.
+* `sync_status`: a code from 'New', 'Success', or 'Failure'. Default is 'New'.
+* `sync_message`: a success or error message from the last synchronization.
+
+For each combination of `model_name` and `record_id`, there is 
+only one record in this table. All `Failure` records of `create` and 
+`write` operations will be re-tried if there is a write operation the 
+next time a synchronization process runs. All `Failure` records 
+of `unlink` operations are only synced once. A user needs to handle it 
+`unlink` operation manually. 
  
-### Amazon Integration UI
-
-Including Amazon integration configuration UI and integration UI.
-The configuration UI allows a user to configure Amazon API user 
-account and integration parameters. The integration UI allows 
-manual operation and check integration status.  
-
-1. Configuration UI
-
-    The configuration UI has the following fields to configure 
-    integration parameters: 
-    
-    * Marketplace ID: the Amazon marketplace ID
-    * Merchant ID: merchant ID of the company
-    * Access Key: merchant access key
-    * Secret Key: merchant secret key
-    * Test connection: a button to test the above authentication parameters
-    
-    * Integration interval (seconds): default is 60 seconds
-    * Enable automatic integration: a checkbox to enable/disable automatic
-    integration.
-    
-2. Integration UI
-
-    The integration UI shows the integration status. It has a product tab
-    and an order tab to allow a user to check all integration results. 
-    
-    Additionally, it has two buttons to start manual integration: 
-    
-    * Manual product synchronization: a button to synchronize all products.
-    * Manual order status synchronization: a button to synchronize 
-     all orders in the past three months
-
-    If a integration request reports any errors, the error data are saved 
-    in database. Users in the integration user group will be notified 
-    using Odoo messages. 
