@@ -36,8 +36,8 @@ ean13 and default_code of a product.
 ### Site-specific integration status
 The product operation table is to be inherited by a site-specific 
 integration addon to record the integration status of each operation. 
-For example, an Amazon integration addon may add an 
-Amazon_sync_status to record the synchronization status of an Amazon store. 
+For example, an Amazon integration addon may add a column
+to record the synchronization status of an Amazon store. 
 
 ### Intercept Product operations
 When Odoo creates a product, it creates a product_template record and 
@@ -48,5 +48,9 @@ of a product_template record while some product data are attributes
 of a product_product record. Therefore, an integrator needs to 
 intercept and log operations of both tables. 
 
+## Order Operation Integration
 
-
+## Operation Table Cleanup
+The operation table grows with time. To control its size and improve
+performance, we delete records that exist longer than 100 days.
+This should be done by a cron job that runs monthly. 

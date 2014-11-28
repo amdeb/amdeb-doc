@@ -157,6 +157,11 @@ Among these attributes, there is a `amazon_sync_active` flag showing
 weather to synchronize this record to Amazon or not.
 The default value is `True`. Changing this value to `False` 
 then to `True` will generate an `crate` operation. 
+We use a `create` operation instead of a `write` operation 
+of all attributes because 1) the `create` operation` should
+be idempotent in Amazon synchronization and 2) the `create`
+operation is simpler than `write` operation of all attributes and
+3) setting `active` to `False` delete a record from Amazon listing. 
 
 ### Product Synchronization Table
 For the synchronization operation, there are some sync-related fields 
@@ -171,8 +176,12 @@ added to each record:
 
 For each combination of `model_name` and `record_id`, there is 
 only one record in this table. All `Failure` records of `create` and 
-`write` operations will be re-tried if there is a write operation the 
+`write` operations will be re-synced if there is a write operation the 
 next time a synchronization process runs. All `Failure` records 
-of `unlink` operations are only synced once. A user needs to handle it 
+of `unlink` operations are only synced once. A user needs to handle the
 `unlink` operation manually. 
  
+TBD: do we allows a an option to synchronize all Odoo records 
+with Amazon records? i.e, all Amazon records are same as active Odoo records, 
+no more, no less. 
+
