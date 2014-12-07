@@ -137,6 +137,8 @@ creation operation.
     sync operation. Other write operations except price, image, inventory 
     are ignored. 
 
+?? creation, update_most, and creation failure
+
 There are three types of product creations in Amazon: parent creation, 
 child creation and single-variant creation. Because
 Amazon MWS uses multiple steps to create a product, 
