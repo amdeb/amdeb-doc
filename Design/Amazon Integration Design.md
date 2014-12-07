@@ -95,31 +95,57 @@ We create an operation table to log the related data operations
 that need to be synchronized. Because different synchronization 
 services have different process and data requirements, we
 need to transform the Odoo data operations to a data 
-structure used for a synchronization process. 
+structure used for a synchronization process. We use 
+a Amazon synchronization table to store and display synchronization
+status. 
 
 ### Operation Data Transformation
 A synchronization process first transforms product operation data 
-into synchronization data. 
-Following are possible operation combinations of a product record: 
+into synchronization data. Following are possible operation combinations 
+of a product record: 
 
-1. Any operation followed by an unlink operation: ignore everything
-except the unlink operation. Ignore all product template and variant 
-operations of a product if there is an unlink 
-operation for that product template. 
-2. A creation operation followed by some write operations: ignore
-all write operations.
-3. For single-variant product creation: merge product template 
-creation and variant creation into a single product creation. 
-4. Multiple write operations: merge all write operation ordered by
-their timestamp into a single write operation. 
+1. Unlink Operation: ignore all operations followed by an unlink operation. 
+    1. Ignore all product template and variant 
+    operations of a product if there is an unlink 
+    operation for that product template. Ignore all product variant 
+    operations of a product if there is an unlink operation for that 
+    product. 
+    2. A product template unlink operation generates delete requests
+    for all its product variants and product relationships. 
+    3. A product variant unlink operation generates delete requests
+    for the variant and its relationship. 
+2. Create Operation: ignore all write operations following a 
+creation operation.
+    1. For single-variant product creation: merge product template 
+    creation and variant creation into a single product creation sync request.
+    2. Ignore product variant creation that does not have variation attributes.
+    3. Create a creation sync operation for a product creation.
+3. Write operation: 
+    1. Ignore write operations if its `amazon_asin` is empty except 
+    the write operation that set `amazon_sync_active` to `True`. In the
+    exceptional case, create a creation sync operation.
+    2. If a write operation involves the `amazon_sync_active` flag and 
+    the `amazon_asin` is not empty. There are  two possible results: 
+    if it is `True`, generate a create operation and 
+    ignore all other write operations. If it is `False`, create a `deactivate` 
+    sync operation and ignore other write operations.
+    3. Multiple write operations for a product: merge all write operations ordered by
+    their timestamp into a single write operation.
+    4. A write operation involves a price, image, inventory field will generate a new
+    price, image, inventory sync operation. 
+    5. A write operation on `amazon_sync_most` will generate a `update_most`
+    sync operation. Other write operations except price, image, inventory 
+    are ignored. 
 
-There are three types of product creations: parent creation, 
+There are three types of product creations in Amazon: parent creation, 
 child creation and single-variant creation. Because
 Amazon MWS uses multiple steps to create a product, 
 there are two possible methods to handle this: 
-1) create multiple synchronization record after a 
+
+* Create multiple synchronization record after a 
 successful product creation request.
-2) use a creation status to remember the creation progress.
+* use a creation status to remember the creation progress.
+
 The first method is better because it explicitly creates 
 all tasks required for a product creation. This enables 
 us to send all following requests concurrently as well as
@@ -143,7 +169,7 @@ synchronization status. There are two choices for this field:
 status and an Odoo user can check this field to decide what to 
 do to fix a problem if the synchronization for an operation fails.
 This decision also means a one-to-one mapping from an Odoo operation 
-to an Amazon synchronization request. This option two issues: 
+to an Amazon synchronization request. This option has two issues: 
 First it requires one-to-one mapping from an Odoo operation to a
 synchronization operation that might be impossible or less efficient. 
 Second, if one of multiple updates of the same record fails, it is
@@ -170,17 +196,31 @@ We decide to use option 2. An amazon_status_time_stamp column
 is added to each operation table to indicate whether an 
 operation is synchronized or not. 
 
+### Error Recovering
+The synchronization process will automatically retry 
+recoverable synchronization failures. Following are solutions
+for failures that cannot be solved by re-sending of a request. 
+
+* creation failure: manual fix by deactivate and reactivate a product in Odoo
+* update failure: manual fix by a new update in Odoo
+* `update_most` failure: manual fix in Odoo  
+* price failure: manual fix by setting a new price in Odoo
+* inventory failure: manual fix by setting a new inventory quantity in Odoo
+* image failure: manual fix by changing image version in Odoo
+* deactivate failure: manual fix in Amazon 
+* unlink failure: manual fix in Amazon 
+
 ## Amazon Integration Table
 ### Product Table
-Because there are Amazon-specific attributes for either product_template
-or product_product tables, we create two tables that inherit from these
+Because there are Amazon-specific attributes for both product_template
+and product_product tables, we create two tables that inherit from these
 two Odoo tables with additional fields.
 
 All amazon-related field names have a prefix of `amazon-`.
 These attribute will be displayed in an `Amazon` tab in 
 `product_template` view if there is no multiple variants.
-It is in the `product_product` view if there are multiple
-product variants.  
+It is in an `Amazon` tab in the `product_product` view if there 
+are multiple product variants.  
 
 #### The `amazon_sync_active` flag
 There is a  flag showing weather to synchronize this record to Amazon or not.
@@ -207,8 +247,19 @@ When there is a change in this field, we send a product image request
 thus update Amazon product images.
 
 #### The `amazon_asin` field
-This field store Amazon ASIN number for a product. It is a read-only 
-field for a user.
+This field stores Amazon ASIN number for a product. It is a read-only 
+field for a user. This field also serves as a flag indicating 
+if a product is successfully created in Amazon. If it is empty, 
+all product operations except the `create` are ignored.  
+
+#### The `amazon_sync_most` field
+This is used to sync all product attributes except price, inventory 
+and images. This field is useful when a user updates many product 
+attributes but the synchronization is failed -- it allows the user
+to  fix one or more attributes and re-sync with Amazon. 
+
+By default it is `False` and will be set set to `False` when 
+it is processed -- regardless the processing result.
 
 ### Product Operation Table
 This table stores the intercepted product operation data. 
@@ -230,7 +281,7 @@ To control the operation table size, we create a cron job
 that runs once a month to clean up operation records 
 that exist longer than 100 days.
 
-### Product Synchronization Table
+### Amazon Product Synchronization Table
 All Amazon MWS API calls run in a batch model. AMWS splits a product creation 
 into multiple steps. We need to transform product operation data into 
 a data structure that is suitable for synchronization process. 
@@ -240,21 +291,22 @@ The synchronization table has the following fields:
 * `record_id`: the record id of the table.
 * `template_id`: the product template record id
 * `sync_timestamp`: the time stamp of the last synchronization.
-* `sync_type`: creation, update, delete, price, inventory, image, deactivate. 
-* `sync_values`: the combined value in update, delete, price,
-* `sync_status`: a code from 'New', 'Success', or 'Failure'. Default is 'New'.
-* `sync_message`: a success or error message from the last synchronization.
+* `sync_type`: creation, update, update_most, delete, price, inventory, image, deactivate. 
+* `sync_data`: the synchronization data
+* `sync_status`: a status of 'Success', or 'Failure'. 
+* `sync_message`: a success or error message returned from the 
+last synchronization.
 
-For each combination of `model_name` and `record_id`, there is 
+For each combination of `model_name`, `record_id` and `sync_type`, there is 
 only one record in this table. All `Failure` records of `create` and 
 `write` operations will be re-synced if there is a write operation the 
 next time a synchronization process runs. All `Failure` records 
 of `unlink` operations are only synced once. A user needs to handle the
 `unlink` operation manually. 
 
-
  
-TBD: do we allows an option to synchronize all Odoo records 
-with Amazon records? i.e, all Amazon records are same as active Odoo records, 
-no more, no less. 
+## TBD 
+do we allows an option to synchronize all Odoo records 
+with Amazon records? i.e, all Amazon records are the same as active 
+Odoo records, no more, no less. 
 
